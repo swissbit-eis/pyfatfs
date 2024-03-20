@@ -693,12 +693,14 @@ class PyFat(object):
     def __parse_dir_entry(self, address):
         """Parse directory entry at given address."""
         with self.__lock:
-            self.__seek(address)
+            # Workaround to avoid reading from offsets that are not
+            # multiple of 512 as on macos this throws exception
+            self.__seek(address//512 * 512)
             dir_hdr_size = FATDirectoryEntry.FAT_DIRECTORY_HEADER_SIZE
-            dir_data = self.__fp.read(dir_hdr_size)
+            dir_data = self.__fp.read(512)
 
         dir_hdr = struct.unpack(FATDirectoryEntry.FAT_DIRECTORY_LAYOUT,
-                                dir_data)
+                                dir_data[address%512:address%512 + dir_hdr_size])
         dir_hdr = dict(zip(FATDirectoryEntry.FAT_DIRECTORY_VARS, dir_hdr))
         return dir_hdr
 
